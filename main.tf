@@ -4,12 +4,17 @@ provider "aws" {
   profile = "contino_sandbox"
 }
 
-# Variable has been declared
+# Variable Blocks
 variable "vpc_cidr_block" {}
 variable "subnet_cidr_block" {}
 variable "env_prefix" {}
 variable "avail_zone" {}
 variable "route_table_cidr_block" {}
+variable "my_ip" {}
+variable "sg_ingress_cidr_block" {}
+variable "sg_egress_cidr_block" {}
+variable "instance_type" {}
+variable "public_key_location" {}
 
 # VPC
 resource "aws_vpc" "myapp-vpc" {
@@ -50,15 +55,16 @@ resource "aws_internet_gateway" "myapp-igw" {
   }
 }
 
-/* # Route Table
-resource "aws_route_table" "myapp-route-table" {
+/* 
+# Route Table
+resource "aws_route_table" "myapp-rtb" {
   vpc_id = aws_vpc.myapp-vpc.id 
   route {
     cidr_block = var.route_table_cidr_block
     gateway_id = aws_internet_gateway.myapp-igw.id
   }
   tags = {
-    Name = "${var.env_prefix}-route-table"
+    Name = "${var.env_prefix}-rtb"
   }
 }
 
@@ -66,4 +72,115 @@ resource "aws_route_table" "myapp-route-table" {
 resource "aws_route_table_association" "myapp-rta" {
   subnet_id = aws_subnet.myapp-subnet-1.id
   route_table_id = aws_route_table.myapp-route-table.id
-} */
+} 
+
+# Security Group
+resource "aws_security_group" "myapp-sg" {
+  name = "myapp-sg"
+  vpc_id = aws_vpc.myapp-vpc.id
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = [var.sg_ingress_cidr_block]
+  }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = [var.sg_egress_cidr_block]
+    prefix_list_ids = []
+    }
+    tags = {
+      Name = "${var.env_prefix}-sg"
+    }
+}
+*/
+
+# Default Security Group
+resource "aws_default_security_group" "main-sg" {
+  vpc_id = aws_vpc.myapp-vpc.id
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = [var.sg_ingress_cidr_block]
+  }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = [var.sg_egress_cidr_block]
+    prefix_list_ids = []
+    }
+    tags = {
+      Name = "${var.env_prefix}-main-sg"
+    }
+}
+
+# Fetch AMI
+data "aws_ami" "latest-amazon-linux-image" {
+  most_recent = true
+  owners = ["amazon"]
+  filter {
+    name = "name"
+    values = ["amzn2-ami-kernel-5.10-hvm-*-x86_64-gp2"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+  
+}
+
+# Output Latest AMI ID
+output "latest-amazon-linux-image-id" {
+  value = data.aws_ami.latest-amazon-linux-image.id
+
+}
+
+
+#Create Key Pair
+resource "aws_key_pair" "myapp-ssh-key" {
+  key_name = "myapp-ssh-key"
+  public_key = file(var.public_key_location)
+}
+
+
+# Create EC2 Instance based on Latest AMI ID
+resource "aws_instance" "myapp-server" {
+  ami = data.aws_ami.latest-amazon-linux-image.id
+  instance_type = var.instance_type
+  
+  subnet_id = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids = [aws_default_security_group.main-sg.id]
+  availability_zone = var.avail_zone
+
+  associate_public_ip_address = true
+  key_name = aws_key_pair.myapp-ssh-key.key_name
+
+  user_data = file("Start-Up-script.sh")
+
+  tags = {
+      Name = "${var.env_prefix}-server"
+    }
+
+}
+
+# Output EC2 Public IP
+output "EC2-public-ip" {
+  value = aws_instance.myapp-server.public_ip
+
+}
