@@ -171,7 +171,7 @@ resource "aws_instance" "myapp-server" {
   associate_public_ip_address = true
   key_name = aws_key_pair.myapp-ssh-key.key_name
 
-  user_data = file("start-up-script.sh")
+  user_data = file("startup-script.sh")
 
   tags = {
       Name = "${var.env_prefix}-server"
