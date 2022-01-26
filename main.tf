@@ -15,6 +15,7 @@ variable "sg_ingress_cidr_block" {}
 variable "sg_egress_cidr_block" {}
 variable "instance_type" {}
 variable "public_key_location" {}
+variable "private_key_location" {}
 
 # VPC
 resource "aws_vpc" "myapp-vpc" {
@@ -171,7 +172,36 @@ resource "aws_instance" "myapp-server" {
   associate_public_ip_address = true
   key_name = aws_key_pair.myapp-ssh-key.key_name
 
-  user_data = file("startup-script.sh")
+  #user_data = file("startup-script.sh")
+
+  # Connection strings for remote-exec provisioner
+  connection {
+    type = "ssh"
+    user = "ec2-user"
+    private_key = file(var.private_key_location)
+    host = self.public_ip
+  }
+  
+  # File provisioner to copy script
+  provisioner "file" {
+   source = "startup-script.sh"
+   destination = "/home/ec2-user/startup-script.sh"
+  }
+  
+  # Remote provisioner to execute script
+  provisioner "remote-exec" {
+   #script = file("startup-script.sh")
+   inline = [
+     "chmod +x /home/ec2-user/startup-script.sh",
+    "/home/ec2-user/startup-script.sh args" 
+   ]
+  }
+
+  # Local provisioner to save public IP address
+  provisioner "local-exec" {
+   command = "echo ${self.public_ip} > EC2-public-ip.txt"
+  
+  }
 
   tags = {
       Name = "${var.env_prefix}-server"
