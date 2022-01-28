@@ -1,0 +1,12 @@
+# Variable definition
+variable "vpc_id" {}
+variable "my_ip" {}
+variable "sg_ingress_cidr_block" {}
+variable "sg_egress_cidr_block" {}
+variable "env_prefix" {}
+variable "image_name" {}
+variable "subnet_id" {}
+variable "avail_zone" {}
+variable "instance_type" {}
+variable "public_key_location" {}
+variable "private_key_location" {}

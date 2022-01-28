@@ -1,9 +1,21 @@
 # Local Terraform Directory
-.terraform/*
+**/.terraform/*
 
-# Terraform State Files
+# Ignore Terraform State Files
 *.tfstate
 *.tfstate.*
 
-# Terraform Variable Files (may include sensitive data)
+# Ignore Terraform Variable Files (may include sensitive data)
 *.tfvars
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+
+# Ignore Mac/OSX system file, with folder metadata
+.DS_Store
+
+
+# Ignore Crash logs
+crash.log
