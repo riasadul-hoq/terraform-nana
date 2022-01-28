@@ -1,31 +1,3 @@
-# Default Security Group
-resource "aws_default_security_group" "main-sg" {
-  vpc_id = var.vpc_id
-  ingress {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    cidr_blocks = [var.my_ip]
-  }
-  ingress {
-    from_port = 8080
-    to_port = 8080
-    protocol = "tcp"
-    cidr_blocks = [var.sg_ingress_cidr_block]
-  }
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = [var.sg_egress_cidr_block]
-    prefix_list_ids = []
-    }
-    tags = {
-      Name = "${var.env_prefix}-main-sg"
-    }
-}
-
-/*
 # Security Group
 resource "aws_security_group" "myapp-sg" {
   name = "myapp-sg"
@@ -53,7 +25,37 @@ resource "aws_security_group" "myapp-sg" {
       Name = "${var.env_prefix}-sg"
     }
 }
+
+/*
+# Default Security Group
+resource "aws_default_security_group" "main-sg" {
+  vpc_id = var.vpc_id
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    cidr_blocks = [var.sg_ingress_cidr_block]
+  }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = [var.sg_egress_cidr_block]
+    prefix_list_ids = []
+    }
+    tags = {
+      Name = "${var.env_prefix}-main-sg"
+    }
+}
 */
+
+
 
 # Fetch AMI
 data "aws_ami" "latest-amazon-linux-image" {
@@ -86,7 +88,9 @@ resource "aws_instance" "myapp-server" {
   
   subnet_id = var.subnet_id
 
-  vpc_security_group_ids = [aws_default_security_group.main-sg.id]
+  vpc_security_group_ids = [aws_security_group.myapp-sg.id]
+  #vpc_security_group_ids = [aws_default_security_group.main-sg.id]
+
   availability_zone = var.avail_zone
 
   associate_public_ip_address = true
